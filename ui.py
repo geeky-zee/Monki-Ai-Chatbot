@@ -12,21 +12,30 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Robust Image Path Resolver (Auto-Detect)
 # ==========================================
 def find_image(filename_query):
+    """
+    Finds image file even if there are uppercase/lowercase 
+    or spacing differences in assets or root directory.
+    """
     search_dirs = [
         os.path.join(BASE_DIR, "assets"),
         BASE_DIR,
         os.path.join(os.getcwd(), "assets"),
         os.getcwd()
     ]
+    
     clean_target = filename_query.lower().replace(" ", "").replace("_", "").replace("-", "")
     target_name_no_ext = os.path.splitext(clean_target)[0]
 
     for directory in search_dirs:
         if not os.path.exists(directory):
             continue
+            
+        # 1. Direct path check
         direct = os.path.join(directory, filename_query)
         if os.path.exists(direct):
             return direct
+
+        # 2. Case-insensitive & flexible search
         try:
             for item in os.listdir(directory):
                 item_clean = item.lower().replace(" ", "").replace("_", "").replace("-", "")
@@ -34,14 +43,17 @@ def find_image(filename_query):
                     return os.path.join(directory, item)
         except Exception:
             pass
+
     return None
 
 
 def get_main_logo():
+    """Returns path for header & sidebar logo (Monki Ai.png)."""
     return find_image("Monki Ai.png")
 
 
 def get_chat_avatar_path():
+    """Returns path for Monki Chat avatar & favicon (Monki Chat.png)."""
     return find_image("Monki Chat.png")
 
 
@@ -50,6 +62,8 @@ def get_chat_avatar_path():
 # ==========================================
 def setup_page():
     chat_avatar_path = get_chat_avatar_path()
+    
+    # Load PIL Image for browser tab favicon
     favicon_img = "🤖"
     if chat_avatar_path:
         try:
@@ -66,49 +80,7 @@ def setup_page():
     st.markdown(
         """
         <style>
-        /* 1. Hide Streamlit Cloud Header, GitHub toolbar & Footer */
-        header[data-testid="stHeader"],
-        [data-testid="stToolbar"],
-        [data-testid="stDecoration"],
-        #MainMenu,
-        footer,
-        [data-testid="stFooter"],
-        div[class*="viewerBadge"] {
-            display: none !important;
-            visibility: hidden !important;
-        }
-
-        /* 2. Container Padding & Mobile Safe Spacing (Fixes Top Cut) */
-        .block-container {
-            padding-top: 2rem !important;
-        }
-
-        @media (max-width: 768px) {
-            .block-container {
-                padding-top: 3.8rem !important; /* Safe margin for Mobile / iPhone top */
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
-            }
-
-            h1 {
-                font-size: 24px !important;
-            }
-
-            [data-testid="stChatMessage"] {
-                padding-left: 0.2rem;
-                padding-right: 0.2rem;
-            }
-
-            [data-testid="stChatInput"] {
-                width: 100%;
-            }
-
-            section[data-testid="stSidebar"] {
-                width: 80% !important;
-            }
-        }
-
-        /* 3. Sidebar Collapse Button at Bottom End */
+        /* 1. Sidebar Collapse Button at Bottom End */
         [data-testid="stSidebarHeader"] {
             display: flex !important;
             visibility: visible !important;
@@ -138,7 +110,7 @@ def setup_page():
             z-index: 99999 !important;
         }
 
-        /* 4. Full-height Sidebar Layout */
+        /* 2. Full-height Sidebar layout with no scroll and top alignment */
         section[data-testid="stSidebar"] {
             position: relative !important;
             height: 100vh !important;
@@ -159,6 +131,7 @@ def setup_page():
             box-sizing: border-box !important;
         }
 
+        /* Top container takes space, bottom stays anchored */
         section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] > div:first-child {
             flex-grow: 1 !important;
             overflow-y: auto !important;
@@ -169,7 +142,7 @@ def setup_page():
             padding-bottom: 0.2rem !important;
         }
 
-        /* Compact Sidebar Typography */
+        /* Compact typography & spacing */
         section[data-testid="stSidebar"] h2 {
             font-size: 1.15rem !important;
             margin: 0.2rem 0 !important;
@@ -197,7 +170,7 @@ def setup_page():
             font-size: 0.9rem !important;
         }
 
-        /* 5. Chat Avatar Styling */
+        /* Chat Avatar Styling */
         [data-testid="stChatMessageAvatarCustom"],
         [data-testid="stChatMessageAvatar"] {
             width: 44px !important;
@@ -217,6 +190,32 @@ def setup_page():
             background-color: transparent !important;
             border-radius: 6px !important;
         }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-top: 1rem;
+            }
+
+            h1 {
+                font-size: 24px !important;
+            }
+
+            [data-testid="stChatMessage"] {
+                padding-left: 0.2rem;
+                padding-right: 0.2rem;
+            }
+
+            [data-testid="stChatInput"] {
+                width: 100%;
+            }
+
+            section[data-testid="stSidebar"] {
+                width: 80% !important;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -224,11 +223,12 @@ def setup_page():
 
 
 # ==========================================
-# 2. Header
+# 2. Header (Pic 2 Layout - Tight Alignment)
 # ==========================================
 def render_header():
     logo = get_main_logo()
 
+    # Column ratio and gap fixed for tight, clean Pic 2 look
     col_logo, col_title = st.columns(
         [0.10, 0.90],
         gap="small",
@@ -262,18 +262,20 @@ def render_header():
 
 
 # ==========================================
-# 3. Sidebar Controls
+# 3. Sidebar (Pinned Top & Bottom Sections)
 # ==========================================
 def render_sidebar():
     logo = get_main_logo()
 
     with st.sidebar:
+        # --- Top Section (Controls & Recent Chats) ---
         with st.container():
             if logo and os.path.exists(logo):
                 st.image(logo, width=75)
 
             st.header("⚙️ Session Controls")
 
+            # New Chat Button
             if st.button("＋ New Chat", use_container_width=True):
                 st.session_state.chat_counter += 1
                 new_chat = "New Chat"
@@ -287,7 +289,8 @@ def render_sidebar():
 
             st.subheader("Recent Chats")
 
-            for chat_name in list(st.session_state.chats.keys()):
+            # Display Recent Chats
+            for chat_name in st.session_state.chats:
                 if st.button(
                     f"💬 {chat_name}",
                     key=f"chat_button_{chat_name}",
@@ -296,19 +299,37 @@ def render_sidebar():
                     st.session_state.current_chat = chat_name
                     st.rerun()
 
+        # --- Bottom Section (Pinned to Footer) ---
         with st.container():
             st.divider()
 
-            messages = st.session_state.chats.get(st.session_state.current_chat, [])
+            # Chat Information
+            messages = st.session_state.chats[st.session_state.current_chat]
 
-            st.write(f"Current Chat: **{st.session_state.current_chat}**")
-            st.write(f"Total Messages: {len(messages)}")
+            st.write(
+                f"Current Chat: **{st.session_state.current_chat}**"
+            )
 
-            if st.button("🧹 Clear Chat History", use_container_width=True):
-                st.session_state.chats[st.session_state.current_chat] = []
+            st.write(
+                f"Total Messages: {len(messages)}"
+            )
+
+            # Clear Chat History (Clears messages in current chat)
+            if st.button(
+                "🧹 Clear Chat History",
+                use_container_width=True
+            ):
+                st.session_state.chats[
+                    st.session_state.current_chat
+                ] = []
+
                 st.rerun()
 
-            if st.button("🗑️ Delete Chat", use_container_width=True):
+            # Delete Chat (Deletes current chat from Recent Chats)
+            if st.button(
+                "🗑️ Delete Chat",
+                use_container_width=True
+            ):
                 if st.session_state.current_chat in st.session_state.chats:
                     del st.session_state.chats[st.session_state.current_chat]
 
@@ -328,11 +349,18 @@ def render_chat_messages(messages):
     chat_avatar = get_chat_avatar_path()
 
     for message in messages:
+
+        # USER: Stays identical to Pic 1
         if message["role"] == "user":
             with st.chat_message("user"):
                 st.markdown(message["text"])
+
+        # ASSISTANT: Monki Chat Avatar
         else:
-            with st.chat_message("assistant", avatar=chat_avatar):
+            with st.chat_message(
+                "assistant",
+                avatar=chat_avatar
+            ):
                 st.markdown(message["text"])
 
 
